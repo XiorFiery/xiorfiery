@@ -47,7 +47,76 @@ function toast(message){toastEl.textContent=message;toastEl.classList.add('show'
 document.getElementById('year').textContent=new Date().getFullYear();
 const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{threshold:.12});document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
 window.addEventListener('scroll',()=>{const max=document.documentElement.scrollHeight-window.innerHeight;document.getElementById('scrollbar').style.width=(max>0?window.scrollY/max*100:0)+'%'},{passive:true});
-document.getElementById('customForm').addEventListener('submit',e=>{e.preventDefault();const name=document.getElementById('player').value.trim();if(!name){toast('Bạn hãy nhập nickname trong game nhé.');return}toast('Đã chạy thử biểu mẫu cho '+name+'. Chưa có dữ liệu nào được gửi đi.');e.target.reset()});
+
+const SUPABASE_URL = 'https://mjsvpmgyirlqyncqrkq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_cjDGgLTX2NhvkEKRlbblDQ_fQ2yeMMY';
+
+document.getElementById('customForm').addEventListener('submit', async e => {
+  e.preventDefault();
+
+  const form = e.target;
+  const name = document.getElementById('player').value.trim();
+
+  if (!name) {
+    toast('Bạn hãy nhập nickname trong game nhé.');
+    return;
+  }
+
+  const discordInput = form.querySelector(
+    '[name="discord_username"], [name="discord"], #discord'
+  );
+  const modeInput = form.querySelector(
+    '[name="game_mode"], [name="mode"], #mode'
+  );
+  const partyInput = form.querySelector(
+    '[name="party_size"], [name="party"], #party'
+  );
+  const noteInput = form.querySelector(
+    '[name="note"], [name="message"], #note'
+  );
+
+  if (!discordInput || !discordInput.value.trim()) {
+    toast('Bạn cần nhập tên Discord để đăng ký.');
+    return;
+  }
+
+  const payload = {
+    nickname: name,
+    discord_username: discordInput.value.trim(),
+    game_mode: modeInput?.value || 'Custom squad',
+    party_size: partyInput?.value || 'Chỉ mình tôi',
+    note: noteInput?.value.trim() || '',
+    status: 'pending'
+  };
+
+  try {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/custom_registrations`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(payload)
+      }
+    );
+
+    if (!response.ok) {
+      console.error('Supabase error:', await response.text());
+      toast('Gửi đăng ký thất bại. Hãy thử lại sau.');
+      return;
+    }
+
+    toast('Đăng ký thành công! Xior Fiery đã nhận thông tin của bạn.');
+    form.reset();
+  } catch (error) {
+    console.error(error);
+    toast('Không thể kết nối. Hãy kiểm tra mạng rồi thử lại.');
+  }
+});
 // Replace this value with your real Discord invite URL, e.g. https://discord.gg/yourcode
 const DISCORD_INVITE='';
 document.getElementById('discordBtn').addEventListener('click',e=>{if(!DISCORD_INVITE){e.preventDefault();toast('Bạn cần thêm link mời Discord thật vào file index.html trước nhé.')}else{e.preventDefault();window.open(DISCORD_INVITE,'_blank','noopener,noreferrer')}});
